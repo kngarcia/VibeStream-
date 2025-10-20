@@ -1,0 +1,158 @@
+
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  artist-service:
+    build:
+      context: ./artist-service
+      args:
+        - SERVICE_NAME=artist-service
+        - SERVICE_PORT=${ARTIST_PORT}
+    container_name: artist-service
+    ports:
+      - "${ARTIST_PORT}:${ARTIST_PORT}"
+    env_file: .env
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+
+  content-service:
+    build:
+      context: ./content-service
+      args:
+        - SERVICE_NAME=content-service
+        - SERVICE_PORT=${CONTENT_PORT}
+    container_name: content-service
+    ports:
+      - "${CONTENT_PORT}:${CONTENT_PORT}"
+    env_file: .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+
+  playlist-service:
+    build:
+      context: ./playlist-service
+      args:
+        - SERVICE_NAME=playlist-service
+        - SERVICE_PORT=${PLAYLIST_PORT}
+    container_name: playlist-service
+    ports:
+      - "${PLAYLIST_PORT}:${PLAYLIST_PORT}"
+    env_file: .env
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+
+  search-service:
+    build:
+      context: ./search-service
+      args:
+        - SERVICE_NAME=search-service
+        - SERVICE_PORT=${SEARCH_PORT}
+    container_name: search-service
+    ports:
+      - "${SEARCH_PORT}:${SEARCH_PORT}"
+    env_file: .env
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+
+  subscription-service:
+    build:
+      context: ./subscription-service
+      args:
+        - SERVICE_NAME=subscription-service
+        - SERVICE_PORT=${SUBSCRIPTION_PORT}
+    container_name: subscription-service
+    ports:
+      - "${SUBSCRIPTION_PORT}:${SUBSCRIPTION_PORT}"
+    env_file: .env
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+
+  auth-service:
+    build:
+      context: ./auth-service
+      args:
+        - SERVICE_NAME=auth-service
+        - SERVICE_PORT=${AUTH_PORT}
+    container_name: auth-service
+    ports:
+      - "${AUTH_PORT}:${AUTH_PORT}"
+    env_file: .env
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+
+  history-service:
+    build:
+      context: ./history-service
+      args:
+        - SERVICE_NAME=history-service
+        - SERVICE_PORT=${HISTORY_PORT}
+    container_name: history-service
+    ports:
+      - "${HISTORY_PORT}:${HISTORY_PORT}"
+    env_file: .env
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+
+  streaming-service:
+    build:
+      context: ./streaming-service
+      args:
+        - SERVICE_NAME=streaming-service
+        - SERVICE_PORT=${STREAMING_PORT}
+    container_name: streaming-service
+    ports:
+      - "${STREAMING_PORT}:${STREAMING_PORT}"
+    env_file: .env
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+
+  front_music_stm:
+    build:
+      context: ./front_music_stm
+    container_name: front_music_stm
+    ports:
+      - "5173:80"
+    depends_on:
+      - auth-service
+      - search-service
+      - content-service
+      - artist-service
+      - playlist-service
+      - subscription-service
+      - history-service
+      - streaming-service
+    environment:
+      - NODE_ENV=production
+
