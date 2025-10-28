@@ -90,33 +90,30 @@ class SongService:
         title: str,
         original_filename: str,
     ) -> str:
-        """
-        Guarda el archivo de audio en storage/{artist_id}/{album_id}/
-        usando el título de la canción como nombre de archivo.
-        Retorna la URL relativa.
-        """
-        try:
-            # Mantener extensión original
-            ext = Path(original_filename).suffix or ".mp3"
-            safe_title = self._sanitize_filename(title) or "untitled"
-            filename = f"{safe_title}{ext}"
+        ext = Path(original_filename).suffix or ".mp3"
+        safe_title = self._sanitize_filename(title) or "untitled"
+        filename = f"{safe_title}{ext}"
 
-            storage_path = settings.storage_path
-            album_folder = storage_path / str(artist_id) / str(album_id)
-            album_folder.mkdir(parents=True, exist_ok=True)
-
-            file_path = album_folder / filename
-
-            with open(file_path, "wb") as f:
-                f.write(audio_data)
-
-            audio_url = f"/{artist_id}/{album_id}/{filename}"
-            print(f"[✓] Archivo de audio guardado: {file_path}")
+        # 🔹 Si se usa S3
+        if settings.use_s3 and settings.aws_s3_bucket:
+            key = f"{artist_id}/{album_id}/{filename}"
+            upload_bytes_to_s3(settings.aws_s3_bucket, key, audio_data, "audio/mpeg")
+            audio_url = f"{settings.content_base_path}/{key}"
+            print(f"[✓] Archivo subido a S3: {audio_url}")
             return audio_url
 
-        except Exception as e:
-            print(f"[!] Error guardando archivo de audio: {e}")
-            raise ValueError(f"Error al guardar el archivo de audio: {e}")
+        # 🔹 Fallback local
+        storage_path = settings.storage_path
+        album_folder = storage_path / str(artist_id) / str(album_id)
+        album_folder.mkdir(parents=True, exist_ok=True)
+        file_path = album_folder / filename
+
+        with open(file_path, "wb") as f:
+            f.write(audio_data)
+
+        audio_url = f"{settings.content_base_path}/{artist_id}/{album_id}/{filename}"
+        print(f"[✓] Archivo guardado localmente: {file_path}")
+        return audio_url
 
     async def create_song(
         self,

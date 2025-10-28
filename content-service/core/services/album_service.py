@@ -7,6 +7,7 @@ from core.services.artist_lookup import ArtistLookupService
 import os
 from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
+from infrastructure.storage.s3_client import upload_bytes_to_s3
 
 
 class AlbumService:
@@ -20,40 +21,34 @@ class AlbumService:
         image_data: bytes,
         filename: str | None = None,
     ) -> str:
-        """
-        Guarda la imagen de portada en storage/{artist_id}/{album_id}/cover.(jpg|png)
-        Reemplaza la portada si ya existe.
-        Retorna la URL relativa de la imagen guardada.
-        """
-        # Usar extensión original del archivo, default .png
         ext = ".png"
         if filename:
             _, ext_candidate = os.path.splitext(filename)
             if ext_candidate.lower() in [".png", ".jpg", ".jpeg"]:
                 ext = ext_candidate.lower()
 
-        # Nombre fijo de portada
         filename = f"cover{ext}"
 
-        # Ruta base del storage
-        storage_path = settings.storage_path
+        # 🔹 Si se usa S3
+        if settings.use_s3 and settings.aws_s3_bucket:
+            key = f"{artist_id}/{album_id}/{filename}"
+            content_type = "image/png" if ext == ".png" else "image/jpeg"
+            upload_bytes_to_s3(settings.aws_s3_bucket, key, image_data, content_type)
+            cover_url = f"{settings.content_base_path}/{key}"
+            print(f"[✓] Imagen subida a S3: {cover_url}")
+            return cover_url
 
-        # Carpeta del álbum
+        # 🔹 Fallback local
+        storage_path = settings.storage_path
         album_folder = storage_path / str(artist_id) / str(album_id)
         album_folder.mkdir(parents=True, exist_ok=True)
-
-        # Ruta completa del archivo
         file_path = album_folder / filename
 
-        # Guardar la imagen (sobrescribe si ya existe)
         with open(file_path, "wb") as f:
             f.write(image_data)
 
-        # Retornar URL relativa
-        cover_url = f"/{artist_id}/{album_id}/{filename}"
-        print(f"[✓] Imagen guardada: {file_path}")
-        print(f"[✓] URL generada: {cover_url}")
-
+        cover_url = f"{settings.content_base_path}/{artist_id}/{album_id}/{filename}"
+        print(f"[✓] Imagen guardada localmente: {file_path}")
         return cover_url
 
     async def create_album(
