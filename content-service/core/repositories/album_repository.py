@@ -46,11 +46,7 @@ class AlbumRepository:
         await self.session.commit()
 
     async def get_artist_id_by_album(self, album_id: int) -> int | None:
-        stmt = (
-            select(Artist.user_id)
-            .join(Album, Album.artist_id == Artist.id)
-            .where(Album.id == album_id)
-        )
+        stmt = select(Album.artist_id).where(Album.id == album_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
