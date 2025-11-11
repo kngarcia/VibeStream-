@@ -1,39 +1,35 @@
-# artist-service/config.py
 from pydantic import Field
 from pydantic_settings import BaseSettings
-from pathlib import Path
 from typing import List, Optional
 import boto3
 import json
 
 
 class Settings(BaseSettings):
+    # === DATABASE & APP CONFIG ===
     db_url: str = Field(alias="db_url_py")
     jwt_secret: str = Field(alias="JWT_SECRET")
     jwt_algorithm: str = Field(alias="JWT_ALGORITHM", default="HS256")
     port: int = Field(alias="PORT", default=8003)
     rabbitmq_url: str = Field(alias="RABBITMQ_URL")
 
-    # CORS
+    # === CORS ===
     frontend_origins_raw: str = Field(
         alias="FRONTEND_ORIGINS", default="http://localhost:5173"
     )
 
-    # === STORAGE CONFIG ===
-    content_base_path: str = Field(default="storage")
+    # === AWS S3 CONFIG ===
+    aws_access_key_id: str = Field(alias="AWS_ACCESS_KEY_ID")
+    aws_secret_access_key: str = Field(alias="AWS_SECRET_ACCESS_KEY")
+    aws_session_token: Optional[str] = Field(default=None, alias="AWS_SESSION_TOKEN")
+    aws_region: str = Field(alias="AWS_REGION")
+    aws_s3_bucket: str = Field(alias="AWS_S3_BUCKET")
+
+    # === STORAGE SETTINGS ===
     max_file_size: int = Field(default=5 * 1024 * 1024)
     allowed_image_types: list = Field(
         default=["image/jpeg", "image/png", "image/jpg", "image/gif"]
     )
-
-    # === AWS CONFIG (opcional) ===
-    use_s3: bool = Field(default=False, alias="USE_S3")
-    aws_access_key_id: Optional[str] = Field(default=None, alias="AWS_ACCESS_KEY_ID")
-    aws_secret_access_key: Optional[str] = Field(
-        default=None, alias="AWS_SECRET_ACCESS_KEY"
-    )
-    aws_region: Optional[str] = Field(default=None, alias="AWS_REGION")
-    aws_s3_bucket: Optional[str] = Field(default=None, alias="AWS_S3_BUCKET")
 
     class Config:
         env_file = ".env"
@@ -54,27 +50,28 @@ class Settings(BaseSettings):
                 pass
         return [p.strip() for p in s.split(",") if p.strip()]
 
-    @property
-    def storage_path(self) -> Path:
-        return Path(self.content_base_path)
-
     def get_s3_client(self):
-        """Devuelve un cliente boto3 configurado si USE_S3=True"""
-        if not self.use_s3:
-            return None
-        return boto3.client(
-            "s3",
-            aws_access_key_id=self.aws_access_key_id,
-            aws_secret_access_key=self.aws_secret_access_key,
-            region_name=self.aws_region,
-        )
+        """Devuelve un cliente boto3 configurado para S3."""
+        args = {
+            "aws_access_key_id": self.aws_access_key_id,
+            "aws_secret_access_key": self.aws_secret_access_key,
+            "region_name": self.aws_region,
+        }
+        if self.aws_session_token:
+            args["aws_session_token"] = self.aws_session_token
+        return boto3.client("s3", **args)
+
+    def get_public_base_url(self) -> str:
+        """
+        Devuelve la URL base pública del bucket.
+        Ej: https://mi-bucket.s3.us-east-2.amazonaws.com
+        """
+        return f"https://{self.aws_s3_bucket}.s3.{self.aws_region}.amazonaws.com"
 
 
 settings = Settings()  # type: ignore
 
-print(f"🔧 Config loaded:")
-print(f"   JWT Secret: {settings.jwt_secret}")
-print(f"   Storage Path: {settings.storage_path}")
-print(f"   USE_S3: {settings.use_s3}")
-if settings.use_s3:
-    print(f"   AWS Bucket: {settings.aws_s3_bucket}")
+print(f"🔧 Configuración cargada:")
+print(f"   AWS Región: {settings.aws_region}")
+print(f"   AWS Bucket: {settings.aws_s3_bucket}")
+print(f"   URL Base:   {settings.get_public_base_url()}")

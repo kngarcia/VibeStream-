@@ -11,7 +11,6 @@ import traceback
 app = FastAPI(title="Artist Service", version="0.1")
 
 # Servir archivos de directorio de almacenamiento
-app.mount("/files", StaticFiles(directory=settings.storage_path), name="files")
 
 # Debug: Verificar los orígenes permitidos
 print("Allowed origins:", settings.frontend_origins)
@@ -31,9 +30,11 @@ app.add_middleware(AuthMiddleware)
 # Rutas
 app.include_router(artist_router, prefix="/artists", tags=["artists"])
 
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
 
 # Manejo global de excepciones para asegurar headers CORS
 @app.exception_handler(Exception)
@@ -41,16 +42,18 @@ async def global_exception_handler(request: Request, exc: Exception):
     error_detail = str(exc)
     print(f"Global error handler: {error_detail}")
     traceback.print_exc()
-    
+
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal server error"},
         headers={
             "Access-Control-Allow-Origin": "http://localhost:5173",
             "Access-Control-Allow-Credentials": "true",
-        }
+        },
     )
+
 
 # Permitir ejecución directa con python3 main.py
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=settings.port, reload=True)
+
