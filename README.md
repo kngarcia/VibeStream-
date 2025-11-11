@@ -224,7 +224,7 @@ docker stats
 
 🗂️ Estructura del Proyecto
 text
-
+```bash
 streaming-backend/
 ├── auth-service/          # Autenticación y usuarios (Go)
 ├── streaming-service/     # Streaming de audio (Go)
@@ -237,3 +237,4 @@ streaming-backend/
 ├── frontend/              # Aplicación React
 ├── docker-compose.yml     # Orquestación de contenedores
 └── .env                   # Variables de entorno
+```
