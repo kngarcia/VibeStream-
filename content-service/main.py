@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 
 try:
     from events.consumer import consume_events
+
     RABBITMQ_AVAILABLE = True
 except ImportError:
     RABBITMQ_AVAILABLE = False
@@ -16,6 +17,7 @@ except ImportError:
 
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
+
 
 @asynccontextmanager
 async def lifespan(_):
@@ -29,20 +31,20 @@ async def lifespan(_):
             print("[!] Continuando sin RabbitMQ...")
     else:
         print("[!] Ejecutando sin RabbitMQ (modo desarrollo)")
-    
+
     yield
-    
+
     # Shutdown
-    if 'task' in locals():
+    if "task" in locals():
         task.cancel()
         try:
             await task
         except asyncio.CancelledError:
             print("[*] Consumer detenido correctamente.")
 
+
 app = FastAPI(title="Music Service", version="0.1", lifespan=lifespan)
 
-app.mount("/files", StaticFiles(directory=settings.storage_path), name="files")
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,9 +58,12 @@ app.add_middleware(AuthMiddleware)
 app.include_router(album_router)
 app.include_router(song_router)
 
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
 
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=settings.port, reload=True)
+
