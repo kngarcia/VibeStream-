@@ -1,4 +1,3 @@
-# core/services/song_service.py
 import tempfile
 from pathlib import Path
 from mutagen._file import File as MutagenFile
@@ -9,32 +8,34 @@ from core.services.artist_lookup import ArtistLookupService
 import re
 from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
+from infrastructure.storage.s3_client import (
+    upload_bytes_to_s3,
+    build_s3_public_url,
+    delete_from_s3,
+    extract_s3_key_from_url,
+    get_s3_client,
+)
 
 
 class SongService:
+    def __init__(self, repo: SongRepository):
+        self.repo = repo
+
     def _extract_audio_metadata(self, audio_data: bytes, filename: str) -> dict:
-        """
-        Extrae metadatos del archivo de audio usando mutagen.
-        Retorna diccionario con duración y otros metadatos.
-        """
+        """Extrae metadatos del archivo de audio usando mutagen"""
         try:
-            # Crear archivo temporal para mutagen
             with tempfile.NamedTemporaryFile(
                 suffix=Path(filename).suffix, delete=False
             ) as temp_file:
                 temp_file.write(audio_data)
                 temp_file_path = temp_file.name
 
-            # Cargar archivo con mutagen
             audio_file = MutagenFile(temp_file_path)
-
-            # Limpiar archivo temporal
             Path(temp_file_path).unlink(missing_ok=True)
 
             if audio_file is None:
                 raise ValueError("Formato de audio no soportado")
 
-            # Extraer metadatos básicos
             metadata = {
                 "duration": int(audio_file.info.length) if audio_file.info else 0,
                 "bitrate": getattr(audio_file.info, "bitrate", None),
@@ -42,7 +43,6 @@ class SongService:
                 "channels": getattr(audio_file.info, "channels", None),
             }
 
-            # Extraer tags comunes
             if audio_file.tags:
                 metadata.update(
                     {
@@ -75,9 +75,6 @@ class SongService:
             print(f"[!] Error extrayendo metadatos: {e}")
             return {"duration": 0}
 
-    def __init__(self, repo: SongRepository):
-        self.repo = repo
-
     def _sanitize_filename(self, name: str) -> str:
         """Sanitiza un nombre para que sea válido como archivo"""
         return re.sub(r"[^a-zA-Z0-9_\- ]+", "", name).strip().replace(" ", "_")
@@ -90,30 +87,28 @@ class SongService:
         title: str,
         original_filename: str,
     ) -> str:
+        """Sube un archivo de audio a S3"""
         ext = Path(original_filename).suffix or ".mp3"
         safe_title = self._sanitize_filename(title) or "untitled"
         filename = f"{safe_title}{ext}"
+        key = f"{artist_id}/{album_id}/{filename}"
 
-        # 🔹 Si se usa S3
-        if settings.use_s3 and settings.aws_s3_bucket:
-            key = f"{artist_id}/{album_id}/{filename}"
-            upload_bytes_to_s3(settings.aws_s3_bucket, key, audio_data, "audio/mpeg")
-            audio_url = f"{settings.content_base_path}/{key}"
-            print(f"[✓] Archivo subido a S3: {audio_url}")
-            return audio_url
+        upload_bytes_to_s3(settings.aws_s3_bucket, key, audio_data, "audio/mpeg")
 
-        # 🔹 Fallback local
-        storage_path = settings.storage_path
-        album_folder = storage_path / str(artist_id) / str(album_id)
-        album_folder.mkdir(parents=True, exist_ok=True)
-        file_path = album_folder / filename
-
-        with open(file_path, "wb") as f:
-            f.write(audio_data)
-
-        audio_url = f"{settings.content_base_path}/{artist_id}/{album_id}/{filename}"
-        print(f"[✓] Archivo guardado localmente: {file_path}")
+        audio_url = build_s3_public_url(
+            settings.aws_s3_bucket, settings.aws_region, key
+        )
+        print(f"[✓] Archivo subido a S3: {audio_url}")
         return audio_url
+
+    def _delete_audio_file(self, audio_url: str) -> bool:
+        """Elimina el archivo de audio de S3"""
+        key = extract_s3_key_from_url(
+            audio_url, settings.aws_s3_bucket, settings.aws_region
+        )
+        if key:
+            return delete_from_s3(settings.aws_s3_bucket, key)
+        return False
 
     async def create_song(
         self,
@@ -122,34 +117,34 @@ class SongService:
         user_id: int,
         audio_file: bytes,
         audio_filename: str,
-        db: AsyncSession,  # ⬅️ ACEPTA LA SESIÓN
+        db: AsyncSession,
         artist_ids: list[int] | None = None,
         track_number: int | None = None,
         genre_id: int | None = None,
         override_duration: int | None = None,
     ) -> Song:
-        # 🔹 Obtener artista si no se pasa
+        """Crea una nueva canción"""
         if not artist_ids:
             artist_id = await ArtistLookupService.get_artist_id_by_user(user_id, db=db)
             if not artist_id:
                 raise ValueError(f"No existe artista para el user_id {user_id}")
             artist_ids = [artist_id]
 
-        # Extraer metadatos
+        # Extraer metadatos del audio
         metadata = self._extract_audio_metadata(audio_file, audio_filename)
         duration = (
             override_duration if override_duration is not None else metadata["duration"]
         )
 
-        # Guardar archivo de audio con el título como nombre
+        # Subir archivo a S3
         audio_url = self._save_audio_file(
             str(artist_ids[0]), str(album_id), audio_file, title, audio_filename
         )
 
         # Fallbacks con metadatos
-        if not title and metadata["title"]:
+        if not title and metadata.get("title"):
             title = metadata["title"]
-        if track_number is None and metadata["track_number"]:
+        if track_number is None and metadata.get("track_number"):
             try:
                 track_number = int(metadata["track_number"])
             except (ValueError, TypeError):
@@ -164,6 +159,7 @@ class SongService:
             genre_id=genre_id,
         )
 
+        # Asociar artistas
         for artist_id in artist_ids:
             artist = await self.repo.session.get(Artist, artist_id)
             if not artist:
@@ -192,29 +188,84 @@ class SongService:
         title: str | None = None,
         track_number: int | None = None,
         genre_id: int | None = None,
+        audio_file: bytes | None = None,
+        audio_filename: str | None = None,
     ) -> Song:
-        # 🔹 Solo se actualizan los campos permitidos
+        """Actualiza una canción existente"""
+
+        # Si se actualiza el título, renombrar archivo en S3
         if title and title != song.title:
-            # Renombrar archivo físico
             if not song.audio_url:
                 raise ValueError("La canción no tiene un archivo de audio asociado")
-            old_path = Path(__file__).parent.parent.parent / song.audio_url.lstrip("/")
-            ext = old_path.suffix or ".mp3"
-            safe_title = self._sanitize_filename(title)
-            new_filename = f"{safe_title}{ext}"
-            new_path = old_path.parent / new_filename
 
-            try:
-                if old_path.exists():
-                    old_path.rename(new_path)
-                song.audio_url = (
-                    f"/storage/{song.album.artist_id}/{song.album_id}/{new_filename}"
-                )
-            except Exception as e:
-                print(f"[!] Error renombrando archivo: {e}")
-                raise
+            old_key = extract_s3_key_from_url(
+                song.audio_url, settings.aws_s3_bucket, settings.aws_region
+            )
+
+            if old_key:
+                try:
+                    s3 = get_s3_client()
+
+                    # Descargar archivo actual de S3
+                    response = s3.get_object(Bucket=settings.aws_s3_bucket, Key=old_key)
+                    audio_data = response["Body"].read()
+
+                    # Crear nuevo key con título sanitizado
+                    ext = Path(old_key).suffix or ".mp3"
+                    safe_title = self._sanitize_filename(title)
+                    new_filename = f"{safe_title}{ext}"
+
+                    # Mantener estructura: artist_id/album_id/filename
+                    path_parts = old_key.split("/")
+                    if len(path_parts) >= 3:
+                        new_key = f"{path_parts[0]}/{path_parts[1]}/{new_filename}"
+                    else:
+                        artist_id = (
+                            song.artists[0].id if song.artists else song.album.artist_id
+                        )
+                        new_key = f"{artist_id}/{song.album_id}/{new_filename}"
+
+                    # Subir con nuevo nombre
+                    upload_bytes_to_s3(
+                        settings.aws_s3_bucket, new_key, audio_data, "audio/mpeg"
+                    )
+
+                    # Eliminar archivo antiguo
+                    delete_from_s3(settings.aws_s3_bucket, old_key)
+
+                    # Actualizar URL
+                    song.audio_url = build_s3_public_url(
+                        settings.aws_s3_bucket, settings.aws_region, new_key
+                    )
+
+                    print(f"[✓] Archivo renombrado en S3: {old_key} -> {new_key}")
+
+                except Exception as e:
+                    print(f"[!] Error renombrando archivo en S3: {e}")
+                    raise
 
             song.title = title
+
+        # Si se envía nuevo archivo de audio, reemplazar el existente
+        if audio_file and audio_filename:
+            # Eliminar archivo anterior de S3
+            if song.audio_url:
+                self._delete_audio_file(song.audio_url)
+
+            # Subir nuevo archivo a S3
+            artist_id = song.artists[0].id if song.artists else song.album.artist_id
+            audio_url = self._save_audio_file(
+                str(artist_id),
+                str(song.album_id),
+                audio_file,
+                song.title,
+                audio_filename,
+            )
+            song.audio_url = audio_url
+
+            # Actualizar duración con el nuevo archivo
+            metadata = self._extract_audio_metadata(audio_file, audio_filename)
+            song.duration = metadata.get("duration", 0)
 
         if track_number is not None:
             song.track_number = track_number
@@ -237,7 +288,14 @@ class SongService:
         return song
 
     async def delete_song(self, song: Song) -> None:
+        """Elimina una canción y su archivo de S3"""
+        # Eliminar archivo de audio de S3 si existe
+        if song.audio_url:
+            self._delete_audio_file(song.audio_url)
+
+        # Eliminar canción de la base de datos
         await self.repo.delete(song)
 
     async def get_song(self, song_id: int) -> Song | None:
+        """Obtiene una canción por ID"""
         return await self.repo.get_by_id(song_id)
