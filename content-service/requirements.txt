@@ -10,3 +10,4 @@ SQLAlchemy==2.0.43
 uvicorn==0.35.0
 mutagen==1.47.0
 slugify==0.0.1
+boto3==1.40.76
