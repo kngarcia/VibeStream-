@@ -1,9 +1,6 @@
 package services
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
 	"streaming-service/models"
 	"streaming-service/repositories"
 
@@ -11,8 +8,8 @@ import (
 )
 
 type SongService interface {
-	GetSongURL(id uint) (string, error)
-	GetSongInfo(id uint) (*models.Song, error) // Nuevo método
+	GetSongURL(id uint) (string, error) // devuelve la S3 key
+	GetSongInfo(id uint) (*models.Song, error)
 }
 
 type songService struct {
@@ -24,22 +21,11 @@ func NewSongService(db *gorm.DB) SongService {
 	return &songService{repo: repo}
 }
 
+// Ahora esto ya NO arma rutas locales — devolvemos la KEY de S3
 func (s *songService) GetSongURL(id uint) (string, error) {
-	relativePath, err := s.repo.GetSongURLByID(id)
-	if err != nil {
-		return "", err
-	}
-
-	basePath := os.Getenv("CONTENT_BASE_PATH")
-	if basePath == "" {
-		return "", fmt.Errorf("CONTENT_BASE_PATH no está definido en el entorno")
-	}
-
-	fullPath := filepath.Join(basePath, relativePath)
-	return fullPath, nil
+	return s.repo.GetSongURLByID(id)
 }
 
-// Nuevo método para obtener información de la canción
 func (s *songService) GetSongInfo(id uint) (*models.Song, error) {
 	return s.repo.GetSongInfo(id)
 }

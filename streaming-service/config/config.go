@@ -9,11 +9,17 @@ import (
 )
 
 type Config struct {
-	Port            string
-	JWTSecret       string
-	DBURL           string
-	RabbitURL       string
-	AllowedOrigins  []string // Nuevo campo para CORS
+	Port           string
+	JWTSecret      string
+	DBURL          string
+	RabbitURL      string
+	AllowedOrigins []string
+
+	AWSAccessKeyID     string
+	AWSSecretAccessKey string
+	AWSSessionToken    string
+	AWSRegion          string
+	AWSS3Bucket        string
 }
 
 var (
@@ -21,13 +27,10 @@ var (
 	once     sync.Once
 )
 
-// GetConfig devuelve la instancia singleton de Config
 func GetConfig() *Config {
 	once.Do(func() {
-		// Cargar .env solo si existe
 		_ = godotenv.Load()
 
-		// Obtener origins del environment o usar defaults
 		origins := getEnv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
 		allowedOrigins := strings.Split(origins, ",")
 
@@ -37,30 +40,46 @@ func GetConfig() *Config {
 			DBURL:          getEnv("DB_URL", "postgres://user:pass@localhost:5432/dbname?sslmode=disable"),
 			RabbitURL:      getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost/"),
 			AllowedOrigins: allowedOrigins,
+
+			AWSAccessKeyID:     getEnv("AWS_ACCESS_KEY_ID", ""),
+			AWSSecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY", ""),
+			AWSSessionToken:    getEnv("AWS_SESSION_TOKEN", ""),
+			AWSRegion:          getEnv("AWS_REGION", "us-east-1"),
+			AWSS3Bucket:        getEnv("AWS_S3_BUCKET", ""),
 		}
 
-		// Log de configuración (sin secret)
 		println("🔧 Streaming Service Config:")
 		println("   Port:", instance.Port)
 		println("   Allowed Origins:", strings.Join(instance.AllowedOrigins, ", "))
 		println("   DB URL:", maskDBURL(instance.DBURL))
+
+		println("🔧 AWS Config:")
+		println("   Region:", instance.AWSRegion)
+		println("   Bucket:", instance.AWSS3Bucket)
 	})
+
 	return instance
 }
 
-// getEnv devuelve la variable de entorno o un valor por defecto
-func getEnv(key, fallback string) string {
+// getEnv obtiene una variable de entorno o retorna el valor por defecto
+func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
-	return fallback
+	return defaultValue
 }
 
-// maskDBURL enmascara la contraseña en la URL de la base de datos para logs
+// maskDBURL enmascara la contraseña en la URL de la base de datos para logs seguros
 func maskDBURL(dbURL string) string {
+	// Busca el patrón "://usuario:contraseña@" y lo reemplaza con "://usuario:***@"
 	parts := strings.Split(dbURL, "@")
 	if len(parts) > 1 {
-		return "***@" + parts[1]
+		userPassParts := strings.Split(parts[0], ":")
+		if len(userPassParts) >= 3 {
+			// Reconstruye la URL con la contraseña enmascarada
+			maskedURL := userPassParts[0] + ":" + userPassParts[1] + ":***@" + strings.Join(parts[1:], "@")
+			return maskedURL
+		}
 	}
-	return "***"
+	return dbURL
 }

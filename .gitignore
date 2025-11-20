@@ -12,6 +12,9 @@ search-service/.env
 subscription-service/.env
 
 # Ignorar entornos virtuales de Python
+**/.venv/
+**/venv/
+**/__pycache__/
 artist-service/artist
 auth-service/auth
 content-service/content
