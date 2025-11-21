@@ -20,9 +20,11 @@ class Settings(BaseSettings):
     def frontend_origins(self) -> list[str]:
         """Devuelve la lista de orígenes para CORS."""
         raw = self.fronted_origins_raw
-        if not raw:
-            return []
+        if not raw or raw.strip() == "":
+            return ["*"]
         s = raw.strip()
+        if s == "*":
+            return ["*"]
         if s.startswith("[") and s.endswith("]"):
             try:
                 import json

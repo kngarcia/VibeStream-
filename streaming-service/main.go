@@ -41,6 +41,9 @@ func main() {
 	songService := services.NewSongService(gormDB)
 	r := gin.Default()
 
+	// Configurar trusted proxies (confiar en Nginx y Docker)
+	r.SetTrustedProxies([]string{"172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16"})
+
 	// CORS
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.AllowedOrigins,

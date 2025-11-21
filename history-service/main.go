@@ -36,6 +36,29 @@ func main() {
 	// Gin router
 	r := gin.Default()
 
+	// Configurar trusted proxies (confiar en Nginx y Docker)
+	r.SetTrustedProxies([]string{"172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16"})
+
+	// CORS
+	allowedOrigins := cfg.AllowedOrigins
+	if len(allowedOrigins) == 0 {
+		allowedOrigins = []string{"*"}
+	}
+	r.Use(func(c *gin.Context) {
+		origin := c.Request.Header.Get("Origin")
+		if origin != "" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+			c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
+		}
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	})
+
 	// Middleware de autenticación
 	r.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 

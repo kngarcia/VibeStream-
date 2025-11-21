@@ -19,16 +19,19 @@ class Settings(BaseSettings):
     def frontend_origins(self) -> List[str]:
         """Devuelve la lista de orígenes para CORS."""
         raw = self.frontend_origins_raw
-        if not raw:
-            return ["http://localhost:3000"]  # fallback
-            
+        if not raw or raw.strip() == "":
+            return ["*"]  # Permitir todos si no está configurado
         s = raw.strip()
+        if s == "*":
+            return ["*"]  # Wildcard explícito
         if s.startswith("[") and s.endswith("]"):
             try:
                 parsed = json.loads(s)
                 if isinstance(parsed, list):
                     return [str(x).strip() for x in parsed if x]
             except Exception:
+                pass
+        return [p.strip() for p in s.split(",") if p.strip()]
                 pass
         
         # ✅ ASEGURAR PROTOCOLO HTTP/HTTPS

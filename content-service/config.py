@@ -46,9 +46,11 @@ class Settings(BaseSettings):
     @property
     def frontend_origins(self) -> List[str]:
         raw = self.frontend_origins_raw
-        if not raw:
-            return []
+        if not raw or raw.strip() == "":
+            return ["*"]
         s = raw.strip()
+        if s == "*":
+            return ["*"]
         if s.startswith("[") and s.endswith("]"):
             try:
                 parsed = json.loads(s)

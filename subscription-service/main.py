@@ -1,9 +1,20 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from handlers.subscription_handler import router as subscription_router
 from middleware.auth_middleware import AuthMiddleware
+from config import settings
 import uvicorn
 
 app = FastAPI(title="Subscription Service", version="0.1")
+
+# Configuración de CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.frontend_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Middleware global
 app.add_middleware(AuthMiddleware)

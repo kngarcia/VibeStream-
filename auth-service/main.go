@@ -47,9 +47,16 @@ func main() {
 	// Router
 	r := gin.Default()
 
-	// Configuración de CORS
+	// Configurar trusted proxies (confiar en Nginx y Docker)
+	r.SetTrustedProxies([]string{"172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16"})
+
+	// Configuración de CORS dinámica desde .env
+	allowedOrigins := cfg.AllowedOrigins
+	if len(allowedOrigins) == 0 {
+		allowedOrigins = []string{"*"} // Permitir todos si no está configurado
+	}
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:5173", "http://localhost:8080"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length", "Content-Type", "Authorization"},
