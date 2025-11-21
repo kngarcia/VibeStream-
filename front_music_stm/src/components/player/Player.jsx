@@ -167,6 +167,7 @@ const Player = () => {
               className={`p-1 rounded-full transition-colors ${
                 shuffle ? 'text-purple-500' : 'text-gray-400 hover:text-white'
               }`}
+              title={shuffle ? 'Shuffle activado' : 'Activar shuffle'}
             >
               <Shuffle className="w-4 h-4" />
             </button>
@@ -202,9 +203,12 @@ const Player = () => {
               className={`p-1 rounded-full transition-colors ${
                 repeat ? 'text-purple-500' : 'text-gray-400 hover:text-white'
               }`}
+              title={repeat ? 'Repetir activado' : 'Activar repetir'}
             >
               <Repeat className="w-4 h-4" />
             </button>
+            {/* Mood AI Toggle */}
+            <MoodAIToggle />
           </div>
 
           {/* Barra de progreso */}
@@ -229,11 +233,8 @@ const Player = () => {
           </div>
         </div>
 
-        {/* Controles de volumen y Mood AI */}
+        {/* Controles de volumen */}
         <div className="flex items-center gap-3 flex-1 justify-end">
-          {/* Mood AI Toggle */}
-          <MoodAIToggle className="mr-2" />
-          
           <button className="p-1 text-gray-400 hover:text-white transition-colors">
             <MoreHorizontal className="w-4 h-4" />
           </button>

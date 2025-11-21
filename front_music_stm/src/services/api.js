@@ -2,15 +2,14 @@
 
 import { Search } from "lucide-react";
 
-// Definir las URLs base para diferentes servicios
+// Definir las URLs base para diferentes servicios usando variables de entorno
 const API_BASES = {
-  auth:  'http://localhost:8080',
-  streaming: 'http://localhost:8001',
-  music: 'http://localhost:8002',
-  artist: 'http://localhost:8003',
-  search: 'http://localhost:8006',
-  playlist: 'http://localhost:8004',
-
+  auth: import.meta.env.VITE_AUTH_SERVICE_URL || 'http://localhost:8080',
+  streaming: import.meta.env.VITE_STREAMING_SERVICE_URL || 'http://localhost:8001',
+  music: import.meta.env.VITE_CONTENT_SERVICE_URL || 'http://localhost:8002',
+  artist: import.meta.env.VITE_ARTIST_SERVICE_URL || 'http://localhost:8003',
+  search: import.meta.env.VITE_SEARCH_SERVICE_URL || 'http://localhost:8006',
+  playlist: import.meta.env.VITE_PLAYLIST_SERVICE_URL || 'http://localhost:8004',
 };
 
 // Función para requests PÚBLICOS (sin autenticación)
