@@ -1,6 +1,3 @@
-
-version: '3.8'
-
 services:
   rabbitmq:
     image: rabbitmq:3-management
@@ -138,6 +135,21 @@ services:
     volumes:
       - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
 
+  recommendation-service:
+    build:
+      context: ./recommendation-service
+      args:
+        - SERVICE_NAME=recommendation-service
+        - SERVICE_PORT=${RECOMMENDATION_PORT}
+    container_name: recommendation-service
+    ports:
+      - "${RECOMMENDATION_PORT}:${RECOMMENDATION_PORT}"
+    env_file: .env
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+
   front_music_stm:
     build:
       context: ./front_music_stm
@@ -153,6 +165,7 @@ services:
       - subscription-service
       - history-service
       - streaming-service
+      - recommendation-service
     environment:
       - NODE_ENV=production
 

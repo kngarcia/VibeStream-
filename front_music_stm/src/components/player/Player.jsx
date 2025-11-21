@@ -14,6 +14,7 @@ import {
   Loader2,
   AlertCircle
 } from "lucide-react";
+import MoodAIToggle from "./MoodAIToggle";
 
 const Player = () => {
   const {
@@ -228,8 +229,11 @@ const Player = () => {
           </div>
         </div>
 
-        {/* Controles de volumen */}
+        {/* Controles de volumen y Mood AI */}
         <div className="flex items-center gap-3 flex-1 justify-end">
+          {/* Mood AI Toggle */}
+          <MoodAIToggle className="mr-2" />
+          
           <button className="p-1 text-gray-400 hover:text-white transition-colors">
             <MoreHorizontal className="w-4 h-4" />
           </button>
