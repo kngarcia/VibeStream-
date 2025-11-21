@@ -35,12 +35,23 @@ def delete_from_s3(bucket: str, key: str) -> bool:
 def extract_s3_key_from_url(url: str, bucket: str, region: str) -> str | None:
     """
     Extrae el key de S3 desde una URL pública.
-    Ejemplo: https://bucket.s3.region.amazonaws.com/artist/album/file.mp3 -> artist/album/file.mp3
+    Soporta tanto AWS real como LocalStack.
+    Ejemplo AWS: https://bucket.s3.region.amazonaws.com/artist/album/file.mp3 -> artist/album/file.mp3
+    Ejemplo LocalStack: http://localhost:4566/bucket/artist/album/file.mp3 -> artist/album/file.mp3
     """
     try:
+        # Para LocalStack: http://localhost:4566/bucket/key
+        if settings.aws_endpoint_url and url.startswith(settings.aws_endpoint_url):
+            # Remover endpoint y bucket
+            prefix = f"{settings.aws_endpoint_url}/{bucket}/"
+            if url.startswith(prefix):
+                return url[len(prefix):]
+        
+        # Para AWS real: https://bucket.s3.region.amazonaws.com/key
         prefix = f"https://{bucket}.s3.{region}.amazonaws.com/"
         if url.startswith(prefix):
-            return url[len(prefix) :]
+            return url[len(prefix):]
+        
         return None
     except Exception as e:
         print(f"[!] Error extrayendo key de URL: {e}")
@@ -48,5 +59,9 @@ def extract_s3_key_from_url(url: str, bucket: str, region: str) -> str | None:
 
 
 def build_s3_public_url(bucket: str, region: str, key: str) -> str:
-    """Crea una URL pública estándar de S3."""
+    """Crea una URL pública de S3. Soporta LocalStack y AWS real."""
+    # Para LocalStack
+    if settings.aws_endpoint_url:
+        return f"{settings.aws_endpoint_url}/{bucket}/{key}"
+    # Para AWS real
     return f"https://{bucket}.s3.{region}.amazonaws.com/{key}"

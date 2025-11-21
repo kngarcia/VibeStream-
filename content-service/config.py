@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     aws_session_token: Optional[str] = Field(default=None, alias="AWS_SESSION_TOKEN")
     aws_region: str = Field(alias="AWS_REGION")
     aws_s3_bucket: str = Field(alias="AWS_S3_BUCKET")
+    aws_endpoint_url: Optional[str] = Field(default=None, alias="AWS_ENDPOINT_URL")  # Para LocalStack
 
     # === STORAGE SETTINGS ===
     max_file_size: int = Field(default=5 * 1024 * 1024)
@@ -69,6 +70,10 @@ class Settings(BaseSettings):
         }
         if self.aws_session_token:
             args["aws_session_token"] = self.aws_session_token
+        
+        # Para LocalStack u otros endpoints personalizados
+        if self.aws_endpoint_url:
+            args["endpoint_url"] = self.aws_endpoint_url
 
         return boto3.client("s3", **args)
 
@@ -76,6 +81,10 @@ class Settings(BaseSettings):
     # URL PÚBLICA DEL BUCKET
     # ---------------------------------------
     def get_public_base_url(self) -> str:
+        # Para LocalStack
+        if self.aws_endpoint_url:
+            return f"{self.aws_endpoint_url}/{self.aws_s3_bucket}"
+        # Para AWS real
         return f"https://{self.aws_s3_bucket}.s3.{self.aws_region}.amazonaws.com"
 
 
