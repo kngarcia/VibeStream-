@@ -13,6 +13,7 @@ type Config struct {
 	AccessTokenTTL  time.Duration
 	RefreshTokenTTL time.Duration
 	Port            string
+	AllowedOrigins  []string
 }
 
 var AppConfig *Config
@@ -20,9 +21,10 @@ var AppConfig *Config
 // LoadConfig carga todas las variables de entorno y las valida
 func LoadConfig() *Config {
 	config := &Config{
-		DatabaseURL: getEnvOrDefault("DB_URL", ""),
-		JWTSecret:   getEnvOrDefault("JWT_SECRET", "HolaMundoo"),
-		Port:        getEnvOrDefault("AUTH_PORT", getEnvOrDefault("PORT", "8080")),
+		DatabaseURL:    getEnvOrDefault("DB_URL", ""),
+		JWTSecret:      getEnvOrDefault("JWT_SECRET", "HolaMundoo"),
+		Port:           getEnvOrDefault("AUTH_PORT", getEnvOrDefault("PORT", "8080")),
+		AllowedOrigins: parseOrigins(getEnvOrDefault("ALLOWED_ORIGINS", "*")),
 	}
 
 	var err error
@@ -61,6 +63,32 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// parseOrigins parsea la lista de orígenes separados por coma
+func parseOrigins(origins string) []string {
+	if origins == "*" || origins == "" {
+		return []string{"*"}
+	}
+	var result []string
+	current := ""
+	for i := 0; i < len(origins); i++ {
+		if origins[i] == ',' {
+			if current != "" {
+				result = append(result, current)
+				current = ""
+			}
+		} else if origins[i] != ' ' {
+			current += string(origins[i])
+		}
+	}
+	if current != "" {
+		result = append(result, current)
+	}
+	if len(result) == 0 {
+		return []string{"*"}
+	}
+	return result
 }
 
 // GetAccessTokenTTLSeconds retorna el TTL del access token en segundos

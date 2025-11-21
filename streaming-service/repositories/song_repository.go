@@ -8,7 +8,7 @@ import (
 
 type SongRepository interface {
 	GetSongURLByID(id uint) (string, error)
-	GetSongInfo(id uint) (*models.Song, error) // Nuevo método
+	GetSongInfo(id uint) (*models.Song, error)
 }
 
 type songRepository struct {
@@ -25,10 +25,10 @@ func (r *songRepository) GetSongURLByID(id uint) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// AudioURL AHORA debe ser la S3 KEY
 	return song.AudioURL, nil
 }
 
-// método para obtener información completa de la canción
 func (r *songRepository) GetSongInfo(id uint) (*models.Song, error) {
 	var song models.Song
 	err := r.db.

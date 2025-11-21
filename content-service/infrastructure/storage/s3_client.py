@@ -34,13 +34,15 @@ def delete_from_s3(bucket: str, key: str) -> bool:
 
 def extract_s3_key_from_url(url: str, bucket: str, region: str) -> str | None:
     """
-    Extrae el key de S3 desde una URL pública.
+    Extrae el key de S3 desde una URL pública de AWS.
     Ejemplo: https://bucket.s3.region.amazonaws.com/artist/album/file.mp3 -> artist/album/file.mp3
     """
     try:
+        # Para AWS: https://bucket.s3.region.amazonaws.com/key
         prefix = f"https://{bucket}.s3.{region}.amazonaws.com/"
         if url.startswith(prefix):
-            return url[len(prefix) :]
+            return url[len(prefix):]
+        
         return None
     except Exception as e:
         print(f"[!] Error extrayendo key de URL: {e}")
@@ -48,5 +50,5 @@ def extract_s3_key_from_url(url: str, bucket: str, region: str) -> str | None:
 
 
 def build_s3_public_url(bucket: str, region: str, key: str) -> str:
-    """Crea una URL pública estándar de S3."""
+    """Crea una URL pública de S3 para AWS."""
     return f"https://{bucket}.s3.{region}.amazonaws.com/{key}"

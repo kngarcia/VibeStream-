@@ -25,7 +25,7 @@ class FileUploader:
         if file_size > settings.max_file_size:
             raise HTTPException(
                 status_code=400,
-                detail="Archivo demasiado grande (máx. 5 MB)",
+                detail="Archivo demasiado grande (máx. 15 MB)",
             )
 
         # === Estructura de la clave S3 ===

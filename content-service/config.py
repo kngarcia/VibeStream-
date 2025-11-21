@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     db_url: str = Field(alias="db_url_py")
     jwt_secret: str = Field(alias="JWT_SECRET")
     jwt_algorithm: str = Field(alias="JWT_ALGORITHM", default="HS256")
-    port: int = Field(alias="PORT", default=8001)
+    port: int = Field(alias="CONTENT_PORT", default=8001)
 
     # === RABBITMQ ===
     rabbitmq_url: str = Field(alias="RABBITMQ_URL")
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     aws_s3_bucket: str = Field(alias="AWS_S3_BUCKET")
 
     # === STORAGE SETTINGS ===
-    max_file_size: int = Field(default=5 * 1024 * 1024)
+    max_file_size: int = Field(default=15 * 1024 * 1024)
     allowed_image_types: list = Field(
         default=["image/jpeg", "image/png", "image/jpg", "image/gif"]
     )
@@ -46,9 +46,11 @@ class Settings(BaseSettings):
     @property
     def frontend_origins(self) -> List[str]:
         raw = self.frontend_origins_raw
-        if not raw:
-            return []
+        if not raw or raw.strip() == "":
+            return ["*"]
         s = raw.strip()
+        if s == "*":
+            return ["*"]
         if s.startswith("[") and s.endswith("]"):
             try:
                 parsed = json.loads(s)
@@ -59,7 +61,7 @@ class Settings(BaseSettings):
         return [p.strip() for p in s.split(",") if p.strip()]
 
     # ---------------------------------------
-    # CLIENTE S3 (igual al microservicio funcional)
+    # CLIENTE S3
     # ---------------------------------------
     def get_s3_client(self):
         args = {
@@ -76,6 +78,10 @@ class Settings(BaseSettings):
     # URL PÚBLICA DEL BUCKET
     # ---------------------------------------
     def get_public_base_url(self) -> str:
+        """
+        Devuelve la URL base pública del bucket.
+        """
+        # Para AWS real
         return f"https://{self.aws_s3_bucket}.s3.{self.aws_region}.amazonaws.com"
 
 

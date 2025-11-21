@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     db_url: str = Field(alias="db_url_py")
     jwt_secret: str = Field(alias="JWT_SECRET", default="HolaMundoo")
     jwt_algorithm: str = Field(alias="JWT_ALGORITHM", default="HS256")
-    port: int = Field(alias="PORT", default=8004)
+    port: int = Field(alias="PLAYLIST_PORT", default=8004)
     frontend_origins_raw: str = Field(alias="FRONTEND_ORIGINS", default="http://localhost:3000,http://localhost:5173")
 
     class Config:
@@ -19,16 +19,19 @@ class Settings(BaseSettings):
     def frontend_origins(self) -> List[str]:
         """Devuelve la lista de orígenes para CORS."""
         raw = self.frontend_origins_raw
-        if not raw:
-            return ["http://localhost:3000"]  # fallback
-            
+        if not raw or raw.strip() == "":
+            return ["*"]  # Permitir todos si no está configurado
         s = raw.strip()
+        if s == "*":
+            return ["*"]  # Wildcard explícito
         if s.startswith("[") and s.endswith("]"):
             try:
                 parsed = json.loads(s)
                 if isinstance(parsed, list):
                     return [str(x).strip() for x in parsed if x]
             except Exception:
+                pass
+        return [p.strip() for p in s.split(",") if p.strip()]
                 pass
         
         # ✅ ASEGURAR PROTOCOLO HTTP/HTTPS

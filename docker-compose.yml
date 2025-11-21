@@ -10,9 +10,11 @@ services:
       RABBITMQ_DEFAULT_PASS: guest
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    networks:
+      - vibestream-network
 
   artist-service:
     build:
@@ -25,9 +27,10 @@ services:
       - "${ARTIST_PORT}:${ARTIST_PORT}"
     env_file: .env
     depends_on:
-      - rabbitmq
-    volumes:
-      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - vibestream-network
 
   content-service:
     build:
@@ -42,8 +45,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    volumes:
-      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+    networks:
+      - vibestream-network
 
   playlist-service:
     build:
@@ -56,9 +59,10 @@ services:
       - "${PLAYLIST_PORT}:${PLAYLIST_PORT}"
     env_file: .env
     depends_on:
-      - rabbitmq
-    volumes:
-      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - vibestream-network
 
   search-service:
     build:
@@ -71,9 +75,10 @@ services:
       - "${SEARCH_PORT}:${SEARCH_PORT}"
     env_file: .env
     depends_on:
-      - rabbitmq
-    volumes:
-      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - vibestream-network
 
   subscription-service:
     build:
@@ -86,9 +91,10 @@ services:
       - "${SUBSCRIPTION_PORT}:${SUBSCRIPTION_PORT}"
     env_file: .env
     depends_on:
-      - rabbitmq
-    volumes:
-      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - vibestream-network
 
   auth-service:
     build:
@@ -101,9 +107,10 @@ services:
       - "${AUTH_PORT}:${AUTH_PORT}"
     env_file: .env
     depends_on:
-      - rabbitmq
-    volumes:
-      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - vibestream-network
 
   history-service:
     build:
@@ -116,9 +123,10 @@ services:
       - "${HISTORY_PORT}:${HISTORY_PORT}"
     env_file: .env
     depends_on:
-      - rabbitmq
-    volumes:
-      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - vibestream-network
 
   streaming-service:
     build:
@@ -131,9 +139,10 @@ services:
       - "${STREAMING_PORT}:${STREAMING_PORT}"
     env_file: .env
     depends_on:
-      - rabbitmq
-    volumes:
-      - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - vibestream-network
 
   recommendation-service:
     build:
@@ -146,9 +155,12 @@ services:
       - "${RECOMMENDATION_PORT}:${RECOMMENDATION_PORT}"
     env_file: .env
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     volumes:
       - ${CONTENT_BASE_PATH}:${CONTENT_BASE_PATH}
+    networks:
+      - vibestream-network
 
   front_music_stm:
     build:
@@ -168,4 +180,10 @@ services:
       - recommendation-service
     environment:
       - NODE_ENV=production
+    networks:
+      - vibestream-network
+
+networks:
+  vibestream-network:
+    driver: bridge
 

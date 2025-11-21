@@ -1,18 +1,16 @@
 package services
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
 	"streaming-service/models"
 	"streaming-service/repositories"
+	"streaming-service/utils"
 
 	"gorm.io/gorm"
 )
 
 type SongService interface {
-	GetSongURL(id uint) (string, error)
-	GetSongInfo(id uint) (*models.Song, error) // Nuevo método
+	GetSongURL(id uint) (string, error) // devuelve la S3 key
+	GetSongInfo(id uint) (*models.Song, error)
 }
 
 type songService struct {
@@ -24,22 +22,22 @@ func NewSongService(db *gorm.DB) SongService {
 	return &songService{repo: repo}
 }
 
+// GetSongURL obtiene la URL completa de la BD y extrae la S3 key
 func (s *songService) GetSongURL(id uint) (string, error) {
-	relativePath, err := s.repo.GetSongURLByID(id)
+	audioURL, err := s.repo.GetSongURLByID(id)
 	if err != nil {
 		return "", err
 	}
 
-	basePath := os.Getenv("CONTENT_BASE_PATH")
-	if basePath == "" {
-		return "", fmt.Errorf("CONTENT_BASE_PATH no está definido en el entorno")
+	// Extraer la key de S3 desde la URL
+	s3Key, err := utils.ExtractS3KeyFromURL(audioURL)
+	if err != nil {
+		return "", err
 	}
 
-	fullPath := filepath.Join(basePath, relativePath)
-	return fullPath, nil
+	return s3Key, nil
 }
 
-// Nuevo método para obtener información de la canción
 func (s *songService) GetSongInfo(id uint) (*models.Song, error) {
 	return s.repo.GetSongInfo(id)
 }

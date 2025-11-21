@@ -8,10 +8,11 @@ import (
 )
 
 type Config struct {
-	Port      string
-	JWTSecret string
-	DBURL     string
-	RabbitURL string
+	Port           string
+	JWTSecret      string
+	DBURL          string
+	RabbitURL      string
+	AllowedOrigins []string
 }
 
 var (
@@ -26,13 +27,32 @@ func GetConfig() *Config {
 		_ = godotenv.Load()
 
 		instance = &Config{
-			Port:      getEnv("HISTORY_PORT", "8005"),
-			JWTSecret: getEnv("JWT_SECRET", "defaultsecret"),
-			DBURL:     getEnv("DB_URL", "postgres://user:pass@localhost:5432/dbname?sslmode=disable"),
-			RabbitURL: getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost/"),
+			Port:           getEnv("HISTORY_PORT", "8005"),
+			JWTSecret:      getEnv("JWT_SECRET", "defaultsecret"),
+			DBURL:          getEnv("DB_URL", "postgres://user:pass@localhost:5432/dbname?sslmode=disable"),
+			RabbitURL:      getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost/"),
+			AllowedOrigins: parseOrigins(getEnv("ALLOWED_ORIGINS", "*")),
 		}
 	})
 	return instance
+}
+
+// parseOrigins parsea la lista de orígenes
+func parseOrigins(origins string) []string {
+	if origins == "*" || origins == "" {
+		return []string{"*"}
+	}
+	var result []string
+	for i := 0; i < len(origins); i++ {
+		start := i
+		for i < len(origins) && origins[i] != ',' {
+			i++
+		}
+		if origin := origins[start:i]; origin != "" {
+			result = append(result, origin)
+		}
+	}
+	return result
 }
 
 // getEnv devuelve la variable de entorno o un valor por defecto

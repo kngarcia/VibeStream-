@@ -103,9 +103,7 @@ const SongRow = ({ song, index, onPlay, formatDuration, isCurrentTrack, isPlayin
       {/* Información de la canción */}
       <div className="col-span-5 flex items-center space-x-3">
         <img
-          src={song.album?.cover_url 
-            ? `http://localhost:8002/files${song.album.cover_url}`
-            : '/default-cover.png'
+          src={song.album?.cover_url || '/default-album.png'
           }
           alt={song.title}
           className="w-10 h-10 rounded object-cover"

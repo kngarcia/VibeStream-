@@ -10,36 +10,8 @@ from core.services.artist_lookup import ArtistLookupService
 from config import settings
 
 
-def create_artist_folder_structure(artist_id: str, album_id: int) -> None:
-    """
-    Crea la estructura de carpetas para el artista y el álbum:
-    {CONTENT_BASE_PATH}/
-    └── {artist_id}/
-        ├── utils/
-        └── {album_id}/
-    """
-    try:
-        # 🔹 USAR PATH CENTRALIZADO DESDE CONFIG
-        storage_path = settings.storage_path
-
-        # Carpeta del artista
-        artist_folder = storage_path / str(artist_id)
-        artist_folder.mkdir(parents=True, exist_ok=True)
-
-        # Carpeta utils
-        utils_folder = artist_folder / "utils"
-        utils_folder.mkdir(exist_ok=True)
-
-        # Carpeta del álbum usando ID
-        album_folder = artist_folder / str(album_id)
-        album_folder.mkdir(exist_ok=True)
-
-        print(f"[✓] Estructura de carpetas creada en {settings.content_base_path}:")
-        print(f"    - {artist_folder}")
-        print(f"    - {utils_folder}")
-        print(f"    - {album_folder}")
-    except Exception as e:
-        print(f"[!] Error creando estructura de carpetas: {e}")
+# Ya no se necesita crear estructura de carpetas local
+# Todo se almacena en S3 con el formato: {artist_id}/{album_id}/{filename}
 
 
 async def handle_artist_created(message: AbstractIncomingMessage) -> None:
@@ -73,9 +45,6 @@ async def handle_artist_created(message: AbstractIncomingMessage) -> None:
                 album = await service.create_album(
                     album_name, user_id=user_id, db=session
                 )
-
-                # 🔹 Crear estructura de carpetas usando el album.id
-                create_artist_folder_structure(str(artist_id), album.id)
 
                 # 🔹 Hacer commit explícito para asegurar que los cambios se persistan
                 await session.commit()

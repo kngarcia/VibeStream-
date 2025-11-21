@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     db_url: str = Field(alias="db_url_py")
     jwt_secret: str
     jwt_algorithm: str = "HS256"
-    port: int = 8006
+    port: int = Field(alias="SUBSCRIPTION_PORT", default=8007)
 
     class Config:
         env_file = ".env"

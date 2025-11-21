@@ -85,7 +85,7 @@
         <div className="flex items-center space-x-4 p-6 bg-gray-800 rounded-lg">
           {artist.profile_pic ? (
             <img
-              src={`http://localhost:8002/files${artist.profile_pic}`}
+              src={artist.profile_pic}
               alt={artist.name}
               className="w-20 h-20 rounded-full object-cover"
             />
@@ -139,7 +139,7 @@
         <div className="relative mb-4">
           {album.cover_url ? (
             <img
-              src={`http://localhost:8002/files${album.cover_url}`}
+              src={album.cover_url}
               alt={album.title}
               className="w-full aspect-square object-cover rounded-lg"
             />

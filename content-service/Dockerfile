@@ -34,10 +34,10 @@ WORKDIR /app
 # Copiar todo el código del microservicio
 COPY . .
 
-# Exponer el puerto en el que corre FastAPI
-EXPOSE 8002
+# Exponer el puerto dinámico desde variable de entorno
+ARG SERVICE_PORT
+EXPOSE ${SERVICE_PORT}
 
 # Comando para ejecutar el servidor FastAPI con Uvicorn
-# --host 0.0.0.0 permite que sea accesible desde fuera del contenedor
-# --port 8001 puerto del contenedor
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
+# Usa sh -c para expandir la variable de entorno PORT en runtime
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${CONTENT_PORT}"]

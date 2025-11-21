@@ -33,9 +33,9 @@ const CreateAlbumModal = ({ isOpen, onClose, onAlbumCreated }) => {
         return;
       }
 
-      // Validar tamaño (5MB máximo)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('La imagen debe ser menor a 5MB');
+      // Validar tamaño (15MB máximo)
+      if (file.size > 15 * 1024 * 1024) {
+        setError('La imagen debe ser menor a 15MB');
         return;
       }
 
@@ -203,7 +203,7 @@ const CreateAlbumModal = ({ isOpen, onClose, onAlbumCreated }) => {
               className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600 disabled:opacity-50"
             />
             <p className="text-xs text-gray-400 mt-1">
-              PNG, JPG, JPEG hasta 5MB
+              PNG, JPG, JPEG hasta 15MB
             </p>
           </div>
 

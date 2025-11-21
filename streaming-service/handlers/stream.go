@@ -1,17 +1,19 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
-	"time"
+	"streaming-service/aws"
 	"streaming-service/events"
 	"streaming-service/models"
 	"streaming-service/services"
 	"streaming-service/utils"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 )
 
@@ -59,26 +61,24 @@ func StreamSongHandler(songService services.SongService) gin.HandlerFunc {
 			return
 		}
 
-		songPath, err := songService.GetSongURL(uint(id))
+		// Obtener la S3 key de la canción
+		s3Key, err := songService.GetSongURL(uint(id))
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "canción no encontrada: " + err.Error()})
 			return
 		}
 
-		fileInfo, err := os.Stat(songPath)
+		// Obtener metadata del objeto S3 para conocer el tamaño
+		headOutput, err := aws.S3.HeadObject(context.TODO(), &s3.HeadObjectInput{
+			Bucket: &aws.Bucket,
+			Key:    &s3Key,
+		})
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "archivo de audio no encontrado: " + err.Error()})
+			c.JSON(http.StatusNotFound, gin.H{"error": "archivo de audio no encontrado en S3: " + err.Error()})
 			return
 		}
 
-		file, err := os.Open(songPath)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error al abrir el archivo: " + err.Error()})
-			return
-		}
-		defer file.Close()
-
-		size := fileInfo.Size()
+		size := headOutput.ContentLength
 		rangeHeader := c.GetHeader("Range")
 
 		c.Header("Accept-Ranges", "bytes")
@@ -86,34 +86,52 @@ func StreamSongHandler(songService services.SongService) gin.HandlerFunc {
 		c.Header("Cache-Control", "no-cache")
 
 		if rangeHeader == "" {
-			c.Header("Content-Length", fmt.Sprintf("%d", size))
+			c.Header("Content-Length", fmt.Sprintf("%d", *size))
 			c.Status(http.StatusOK)
-			
+
 			publishSongPlayedEvent(c, uint(id))
-			
-			_, err := io.Copy(c.Writer, file)
+
+			// Obtener todo el archivo de S3
+			getOutput, err := aws.S3.GetObject(context.TODO(), &s3.GetObjectInput{
+				Bucket: &aws.Bucket,
+				Key:    &s3Key,
+			})
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "error al obtener archivo de S3: " + err.Error()})
+				return
+			}
+			defer getOutput.Body.Close()
+
+			_, err = io.Copy(c.Writer, getOutput.Body)
 			if err != nil {
 				fmt.Printf("❌ Error enviando archivo completo: %v\n", err)
 			}
 			return
 		}
 
-		start, end := utils.ParseRange(rangeHeader, size)
-		if start > end || start >= size {
+		start, end := utils.ParseRange(rangeHeader, *size)
+		if start > end || start >= *size {
 			c.JSON(http.StatusRequestedRangeNotSatisfiable, gin.H{"error": "rango inválido"})
 			return
 		}
 
 		length := end - start + 1
 		c.Header("Content-Length", fmt.Sprintf("%d", length))
-		c.Header("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, size))
+		c.Header("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, *size))
 		c.Status(http.StatusPartialContent)
 
-		_, err = file.Seek(start, 0)
+		// Solicitar rango específico de S3
+		rangeRequest := fmt.Sprintf("bytes=%d-%d", start, end)
+		getOutput, err := aws.S3.GetObject(context.TODO(), &s3.GetObjectInput{
+			Bucket: &aws.Bucket,
+			Key:    &s3Key,
+			Range:  &rangeRequest,
+		})
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "error al posicionar en el archivo"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "error al obtener rango de S3: " + err.Error()})
 			return
 		}
+		defer getOutput.Body.Close()
 
 		buf := make([]byte, 32*1024)
 		var sent int64 = 0
@@ -124,8 +142,8 @@ func StreamSongHandler(songService services.SongService) gin.HandlerFunc {
 			if length-sent < toRead {
 				toRead = length - sent
 			}
-			
-			n, err := file.Read(buf[:toRead])
+
+			n, err := getOutput.Body.Read(buf[:toRead])
 			if n > 0 {
 				_, writeErr := c.Writer.Write(buf[:n])
 				if writeErr != nil {
@@ -134,15 +152,15 @@ func StreamSongHandler(songService services.SongService) gin.HandlerFunc {
 				}
 				sent += int64(n)
 
-				if !eventSent && float64(sent+start)/float64(size) >= 0.3 {
+				if !eventSent && float64(sent+start)/float64(*size) >= 0.3 {
 					publishSongPlayedEvent(c, uint(id))
 					eventSent = true
 				}
 			}
-			
+
 			if err != nil {
 				if err != io.EOF {
-					fmt.Printf("❌ Error leyendo archivo: %v\n", err)
+					fmt.Printf("❌ Error leyendo desde S3: %v\n", err)
 				}
 				break
 			}
@@ -206,7 +224,7 @@ func mapSongToResponse(song *models.Song) SongInfoResponse {
 	artists := make([]ArtistResponse, len(song.Artists))
 	for i, artist := range song.Artists {
 		artists[i] = ArtistResponse{
-			ID:   artist.ID,
+			ID: artist.ID,
 		}
 	}
 

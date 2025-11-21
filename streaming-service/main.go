@@ -1,6 +1,7 @@
 package main
 
 import (
+	"streaming-service/aws"
 	"streaming-service/config"
 	"streaming-service/database"
 	"streaming-service/handlers"
@@ -17,10 +18,14 @@ import (
 func main() {
 	cfg := config.GetConfig()
 
+	// Inicializar cliente S3
+	if err := aws.InitS3(); err != nil {
+		panic("❌ Error al inicializar S3: " + err.Error())
+	}
+
 	// Obtener conexión base (sql.DB del pool)
 	sqlDB := database.GetDB()
 
-	// Inicializar GORM una sola vez con el esquema "music_streaming"
 	gormDB, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: sqlDB,
 	}), &gorm.Config{
@@ -33,42 +38,29 @@ func main() {
 		panic("❌ Error al inicializar GORM")
 	}
 
-	// Crear el servicio de canciones UNA sola vez
 	songService := services.NewSongService(gormDB)
-
 	r := gin.Default()
 
-	// ✅ CONFIGURACIÓN CORS COMPLETA - Usar AllowedOrigins de config
+	// Configurar trusted proxies (confiar en Nginx y Docker)
+	r.SetTrustedProxies([]string{"172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16"})
+
+	// CORS completo con soporte para streaming
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.AllowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Range", "Accept-Ranges"},
 		ExposeHeaders:    []string{"Content-Length", "Content-Range", "Accept-Ranges", "Content-Type"},
 		AllowCredentials: true,
-		MaxAge:           12 * 60 * 60, // 12 horas
 	}))
 
-	// Middleware de logs para debugging
-	r.Use(func(c *gin.Context) {
-		c.Next()
-	})
-
-	// Ruta de health check pública
+	// Rutas
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status":  "ok",
-			"service": "streaming",
-			"port":    cfg.Port,
-		})
+		c.JSON(200, gin.H{"status": "ok", "service": "streaming"})
 	})
-
-	// ✅ RUTA DE STREAMING PROTEGIDA CON MIDDLEWARE JWT
-	// El middleware validará el token del header Authorization
 	protected := r.Group("/")
 	protected.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 	protected.GET("/stream", handlers.StreamSongHandler(songService))
 
-	// Ruta pública para información de canciones
 	r.GET("/song/:id/info", handlers.GetSongInfoHandler(songService))
 
 	r.Run(":" + cfg.Port)

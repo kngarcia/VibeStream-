@@ -10,7 +10,7 @@ from fastapi import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.artist import ArtistCreateSchema, ArtistUpdateSchema
-from services.  artist_service import ArtistService
+from services.artist_service import ArtistService
 from utils.json_response import success_response, error_response
 from database.connection import get_db
 from typing import Optional

@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     db_url: str = Field(alias="db_url_py")
     jwt_secret: str = Field(alias="JWT_SECRET")
     jwt_algorithm: str = Field(alias="JWT_ALGORITHM", default="HS256")
-    port: int = Field(alias="PORT", default=8003)
+    port: int = Field(alias="ARTIST_PORT", default=8002)
     rabbitmq_url: str = Field(alias="RABBITMQ_URL")
 
     # === CORS ===
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     aws_s3_bucket: str = Field(alias="AWS_S3_BUCKET")
 
     # === STORAGE SETTINGS ===
-    max_file_size: int = Field(default=5 * 1024 * 1024)
+    max_file_size: int = Field(default=15 * 1024 * 1024)
     allowed_image_types: list = Field(
         default=["image/jpeg", "image/png", "image/jpg", "image/gif"]
     )
@@ -38,9 +38,11 @@ class Settings(BaseSettings):
     @property
     def frontend_origins(self) -> List[str]:
         raw = self.frontend_origins_raw
-        if not raw:
-            return []
+        if not raw or raw.strip() == "":
+            return ["*"]  # Permitir todos si no está configurado
         s = raw.strip()
+        if s == "*":
+            return ["*"]  # Wildcard explícito
         if s.startswith("[") and s.endswith("]"):
             try:
                 parsed = json.loads(s)

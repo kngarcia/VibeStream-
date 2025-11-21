@@ -7,6 +7,7 @@ import (
 	"history-service/models"
 	"history-service/services"
 	"log"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -14,10 +15,26 @@ import (
 func StartConsumer(ctx context.Context, svc *services.HistoryService) error {
 	cfg := config.GetConfig()
 
-	conn, err := amqp.Dial(cfg.RabbitURL)
+	// Reintentar conexión a RabbitMQ
+	var conn *amqp.Connection
+	var err error
+	maxRetries := 10
+
+	for i := 0; i < maxRetries; i++ {
+		conn, err = amqp.Dial(cfg.RabbitURL)
+		if err == nil {
+			break
+		}
+		log.Printf("⚠️ Intento %d/%d: No se pudo conectar a RabbitMQ, reintentando en 3s...", i+1, maxRetries)
+		time.Sleep(3 * time.Second)
+	}
+
 	if err != nil {
 		return err
 	}
+
+	log.Println("✅ Conectado a RabbitMQ")
+
 	ch, err := conn.Channel()
 	if err != nil {
 		return err
