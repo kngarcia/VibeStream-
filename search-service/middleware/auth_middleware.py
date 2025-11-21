@@ -16,7 +16,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         
         # Excluir rutas que no requieran autenticación
-        if request.url.path.startswith("/health"):
+        if request.url.path.startswith("/health") or request.url.path.startswith("/search"):
             return await call_next(request)
 
         auth = HTTPBearer(auto_error=False)

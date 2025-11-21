@@ -11,13 +11,18 @@ class SongRepository:
     async def get_by_title_ilike(self, query: str, limit: int, offset: int):
         stmt = (
             select(Song)
+            .join(Song.album)
+            .join(Album.artist)
             .options(
                 selectinload(Song.album).selectinload(Album.artist).selectinload(Artist.user),
                 selectinload(Song.artists).selectinload(Artist.user)
             )
-            .where(Song.title.ilike(f"%{query}%"))
+            .where(
+                (Song.title.ilike(f"%{query}%")) | 
+                (Artist.artist_name.ilike(f"%{query}%"))
+            )
             .limit(limit)
             .offset(offset)
         )
         result = await self.session.execute(stmt)
-        return result.scalars().all()
+        return result.scalars().unique().all()

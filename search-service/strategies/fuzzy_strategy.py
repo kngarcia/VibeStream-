@@ -61,7 +61,25 @@ class FuzzySearchStrategy(SearchStrategy):
             print(f"👤 Artistas encontrados: {len(artists)}")
 
             # Filtrar usando fuzzy matching sobre los objetos
-            filtered_songs = await self._filter_objects(songs, query, "title")
+            # Para canciones, buscar tanto en el título como en el nombre del artista
+            filtered_songs = []
+            for song in songs:
+                try:
+                    title_similarity = fuzz.partial_ratio(query.lower(), str(song.title).lower())
+                    artist_similarity = 0
+                    if hasattr(song, 'album') and song.album and hasattr(song.album, 'artist') and song.album.artist:
+                        artist_similarity = fuzz.partial_ratio(query.lower(), str(song.album.artist.artist_name).lower())
+                    
+                    max_similarity = max(title_similarity, artist_similarity)
+                    if max_similarity >= self.threshold:
+                        filtered_songs.append((song, max_similarity))
+                except Exception as e:
+                    print(f"Error filtrando canción: {e}")
+                    continue
+            
+            filtered_songs.sort(key=lambda x: x[1], reverse=True)
+            filtered_songs = [item for item, score in filtered_songs]
+            
             filtered_albums = await self._filter_objects(albums, query, "title")
             filtered_artists = await self._filter_objects(artists, query, "artist_name")
 
