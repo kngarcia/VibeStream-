@@ -38,9 +38,9 @@ func main() {
 
 	r := gin.Default()
 
-	// ✅ CONFIGURACIÓN CORS COMPLETA
+	// ✅ CONFIGURACIÓN CORS COMPLETA - Usar AllowedOrigins de config
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "https://mi-front-produccion.com"},
+		AllowOrigins:     cfg.AllowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Range", "Accept-Ranges"},
 		ExposeHeaders:    []string{"Content-Length", "Content-Range", "Accept-Ranges", "Content-Type"},

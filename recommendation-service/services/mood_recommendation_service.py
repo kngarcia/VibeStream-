@@ -126,9 +126,12 @@ class MoodRecommendationService:
         if context_type == 'playlist' and context_id:
             # Canciones de una playlist específica
             query = text(f"""
-                SELECT s.id, s.title, s.artist_name, s.duration, s.cover_url
+                SELECT s.id, s.title, a.artist_name, s.duration, alb.cover_url
                 FROM music_streaming.songs s
                 INNER JOIN music_streaming.playlist_songs ps ON ps.song_id = s.id
+                LEFT JOIN music_streaming.song_artists sa ON s.id = sa.song_id
+                LEFT JOIN music_streaming.artists a ON sa.artist_id = a.id
+                LEFT JOIN music_streaming.albums alb ON s.album_id = alb.id
                 WHERE ps.playlist_id = :context_id
                 {exclude_clause}
                 ORDER BY ps.position
@@ -139,8 +142,11 @@ class MoodRecommendationService:
         elif context_type == 'liked':
             # Canciones marcadas como favoritas (asumir tabla user_likes)
             query = text(f"""
-                SELECT s.id, s.title, s.artist_name, s.duration, s.cover_url
+                SELECT s.id, s.title, a.artist_name, s.duration, alb.cover_url
                 FROM music_streaming.songs s
+                LEFT JOIN music_streaming.song_artists sa ON s.id = sa.song_id
+                LEFT JOIN music_streaming.artists a ON sa.artist_id = a.id
+                LEFT JOIN music_streaming.albums alb ON s.album_id = alb.id
                 WHERE s.id > 0
                 {exclude_clause}
                 ORDER BY RANDOM()
@@ -151,8 +157,11 @@ class MoodRecommendationService:
         elif context_type == 'explore':
             # Modo exploración: canciones aleatorias populares
             query = text(f"""
-                SELECT s.id, s.title, s.artist_name, s.duration, s.cover_url
+                SELECT s.id, s.title, a.artist_name, s.duration, alb.cover_url
                 FROM music_streaming.songs s
+                LEFT JOIN music_streaming.song_artists sa ON s.id = sa.song_id
+                LEFT JOIN music_streaming.artists a ON sa.artist_id = a.id
+                LEFT JOIN music_streaming.albums alb ON s.album_id = alb.id
                 WHERE s.id > 0
                 {exclude_clause}
                 ORDER BY RANDOM()
@@ -163,8 +172,11 @@ class MoodRecommendationService:
         else:
             # Fallback: canciones aleatorias
             query = text(f"""
-                SELECT s.id, s.title, s.artist_name, s.duration, s.cover_url
+                SELECT s.id, s.title, a.artist_name, s.duration, alb.cover_url
                 FROM music_streaming.songs s
+                LEFT JOIN music_streaming.song_artists sa ON s.id = sa.song_id
+                LEFT JOIN music_streaming.artists a ON sa.artist_id = a.id
+                LEFT JOIN music_streaming.albums alb ON s.album_id = alb.id
                 WHERE s.id > 0
                 {exclude_clause}
                 ORDER BY RANDOM()
@@ -180,7 +192,7 @@ class MoodRecommendationService:
                 'title': row.title,
                 'artist_name': row.artist_name or 'Unknown',
                 'duration': row.duration,
-                'cover_url': row.cover_url if hasattr(row, 'cover_url') else None
+                'cover_url': row.cover_image_url if hasattr(row, 'cover_image_url') else None
             }
             for row in rows
         ]
