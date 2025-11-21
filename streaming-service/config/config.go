@@ -27,14 +27,14 @@ var (
 	once     sync.Once
 )
 
-	func GetConfig() *Config {
-		once.Do(func() {
-			_ = godotenv.Load()
+func GetConfig() *Config {
+	once.Do(func() {
+		_ = godotenv.Load()
 
 		// Obtener origins del environment o usar defaults
 		origins := getEnv("FRONTEND_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:3000")
 		allowedOrigins := strings.Split(origins, ",")
-		
+
 		instance = &Config{
 			Port:           getEnv("STREAMING_PORT", "8001"),
 			JWTSecret:      getEnv("JWT_SECRET", "defaultsecret"),
