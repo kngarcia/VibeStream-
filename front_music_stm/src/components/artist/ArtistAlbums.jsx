@@ -218,12 +218,12 @@ const AlbumCard = ({ album, onAlbumUpdated, onAlbumSelect, formatDate, formatDur
       <div className="relative mb-4">
         {album.cover_url ? (
           <img
-            src={`http://localhost:8002/files${album.cover_url}`}
+            src={album.cover_url}
             alt={album.title}
             className="w-full aspect-square object-cover rounded-lg"
             onError={(e) => {
               console.log('❌ Error cargando imagen:', album.cover_url);
-              console.log('🔍 URL intentada:', `http://localhost:8002/files${album.cover_url}`);
+              console.log('🔍 URL intentada:', album.cover_url);
               e.target.style.display = 'none';
             }}
             onLoad={() => console.log('✅ Imagen cargada correctamente')}

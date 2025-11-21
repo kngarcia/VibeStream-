@@ -58,7 +58,7 @@ const ArtistCard = ({ artist, onArtistSelect }) => {
       <div className="relative mb-4">
         {artist.profile_pic ? (
           <img
-            src={`http://localhost:8002/files${artist.profile_pic}`}
+            src={artist.profile_pic}
             alt={artist.name}
             className="w-32 h-32 mx-auto rounded-full object-cover group-hover:scale-105 transition-transform"
           />

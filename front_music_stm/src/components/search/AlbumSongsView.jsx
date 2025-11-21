@@ -86,9 +86,7 @@ const AlbumSongsView = ({ album, onBack, onArtistSelect }) => {
       id: song.id,
       title: song.title,
       artist: getSongArtist(song),
-      cover: album.cover_url 
-        ? `http://localhost:8002/files${album.cover_url}`
-        : '/default-cover.png',
+      cover: album.cover_url || '/default-cover.png',
       duration: song.duration,
       audio_url: song.audio_url,
     };
@@ -102,9 +100,7 @@ const AlbumSongsView = ({ album, onBack, onArtistSelect }) => {
       id: song.id,
       title: song.title,
       artist: getSongArtist(song),
-      cover: album.cover_url 
-        ? `http://localhost:8002/files${album.cover_url}`
-        : '/default-cover.png',
+      cover: album.cover_url || '/default-cover.png',
       duration: song.duration,
       audio_url: song.audio_url,
     }));
@@ -146,7 +142,7 @@ const AlbumSongsView = ({ album, onBack, onArtistSelect }) => {
       <div className="flex items-start space-x-6">
         {album.cover_url ? (
           <img
-            src={`http://localhost:8002/files${album.cover_url}`}
+            src={album.cover_url}
             alt={album.title}
             className="w-48 h-48 object-cover rounded-lg"
           />

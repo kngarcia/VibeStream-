@@ -46,7 +46,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		if err := events.StartConsumer(ctx, historyService); err != nil {
-			log.Fatalf("❌ Error en consumidor de eventos: %v", err)
+			log.Printf("❌ Error en consumidor de eventos: %v", err)
 		}
 	}()
 

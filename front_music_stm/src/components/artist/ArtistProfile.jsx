@@ -145,14 +145,13 @@ const ArtistProfile = ({ artistData, onArtistUpdate, onReload }) => {
           <div className="mb-4">
             {artistData?.profile_pic ? (
               <img
-                src={`http://localhost:8003/files${artistData.profile_pic}`}
+                src={artistData.profile_pic}
                 alt={artistData.artist_name}
                 className="w-32 h-32 rounded-full object-cover mx-auto"
                 onError={(e) => {
                   console.error('Error cargando imagen:', {
                     url: e.target.src,
-                    profilePic: artistData.profile_pic,
-                    fullUrl: `http://localhost:8003/files${artistData.profile_pic}`
+                    profilePic: artistData.profile_pic
                   });
                   e.target.style.display = 'none';
                 }}

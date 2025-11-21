@@ -2,7 +2,7 @@ import { publicRequest, streamingRequest } from './api';
 
 class StreamingService {
   constructor() {
-    this.baseURL = 'http://localhost:8001';
+    this.baseURL = import.meta.env.VITE_STREAMING_URL || '/api/streaming';
   }
 
   // Obtener información de la canción (pública)

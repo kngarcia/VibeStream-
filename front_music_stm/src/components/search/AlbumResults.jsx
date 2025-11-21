@@ -58,7 +58,7 @@ const AlbumCard = ({ album, onAlbumSelect }) => {
       <div className="relative mb-4">
         {album.cover_url ? (
           <img
-            src={`http://localhost:8002/files${album.cover_url}`}
+            src={album.cover_url}
             alt={album.title}
             className="w-full aspect-square object-cover rounded"
             onError={(e) => {

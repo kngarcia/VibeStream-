@@ -20,7 +20,6 @@ type Config struct {
 	AWSSessionToken    string
 	AWSRegion          string
 	AWSS3Bucket        string
-	AWSEndpointURL     string // Para LocalStack
 }
 
 var (
@@ -47,7 +46,6 @@ func GetConfig() *Config {
 			AWSSessionToken:    getEnv("AWS_SESSION_TOKEN", ""),
 			AWSRegion:          getEnv("AWS_REGION", "us-east-1"),
 			AWSS3Bucket:        getEnv("AWS_S3_BUCKET", ""),
-			AWSEndpointURL:     getEnv("AWS_ENDPOINT_URL", ""), // LocalStack
 		}
 
 		println("🔧 Streaming Service Config:")

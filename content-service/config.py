@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     db_url: str = Field(alias="db_url_py")
     jwt_secret: str = Field(alias="JWT_SECRET")
     jwt_algorithm: str = Field(alias="JWT_ALGORITHM", default="HS256")
-    port: int = Field(alias="PORT", default=8001)
+    port: int = Field(alias="CONTENT_PORT", default=8001)
 
     # === RABBITMQ ===
     rabbitmq_url: str = Field(alias="RABBITMQ_URL")
@@ -28,10 +28,9 @@ class Settings(BaseSettings):
     aws_session_token: Optional[str] = Field(default=None, alias="AWS_SESSION_TOKEN")
     aws_region: str = Field(alias="AWS_REGION")
     aws_s3_bucket: str = Field(alias="AWS_S3_BUCKET")
-    aws_endpoint_url: Optional[str] = Field(default=None, alias="AWS_ENDPOINT_URL")  # Para LocalStack
 
     # === STORAGE SETTINGS ===
-    max_file_size: int = Field(default=5 * 1024 * 1024)
+    max_file_size: int = Field(default=15 * 1024 * 1024)
     allowed_image_types: list = Field(
         default=["image/jpeg", "image/png", "image/jpg", "image/gif"]
     )
@@ -60,7 +59,7 @@ class Settings(BaseSettings):
         return [p.strip() for p in s.split(",") if p.strip()]
 
     # ---------------------------------------
-    # CLIENTE S3 (igual al microservicio funcional)
+    # CLIENTE S3
     # ---------------------------------------
     def get_s3_client(self):
         args = {
@@ -70,10 +69,6 @@ class Settings(BaseSettings):
         }
         if self.aws_session_token:
             args["aws_session_token"] = self.aws_session_token
-        
-        # Para LocalStack u otros endpoints personalizados
-        if self.aws_endpoint_url:
-            args["endpoint_url"] = self.aws_endpoint_url
 
         return boto3.client("s3", **args)
 
@@ -81,9 +76,9 @@ class Settings(BaseSettings):
     # URL PÚBLICA DEL BUCKET
     # ---------------------------------------
     def get_public_base_url(self) -> str:
-        # Para LocalStack
-        if self.aws_endpoint_url:
-            return f"{self.aws_endpoint_url}/{self.aws_s3_bucket}"
+        """
+        Devuelve la URL base pública del bucket.
+        """
         # Para AWS real
         return f"https://{self.aws_s3_bucket}.s3.{self.aws_region}.amazonaws.com"
 

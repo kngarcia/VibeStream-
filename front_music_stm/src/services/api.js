@@ -3,14 +3,17 @@
 import { Search } from "lucide-react";
 
 // Definir las URLs base para diferentes servicios
+// En Docker: usa el proxy de Nginx (/api/*)
+// En desarrollo local: usa localhost directo
 const API_BASES = {
-  auth:  'http://localhost:8080',
-  streaming: 'http://localhost:8001',
-  music: 'http://localhost:8002',
-  artist: 'http://localhost:8003',
-  search: 'http://localhost:8006',
-  playlist: 'http://localhost:8004',
-
+  auth: import.meta.env.VITE_AUTH_URL || '/api/auth',
+  streaming: import.meta.env.VITE_STREAMING_URL || '/api/streaming',
+  music: import.meta.env.VITE_CONTENT_URL || '/api/content',
+  artist: import.meta.env.VITE_ARTIST_URL || '/api/artist',
+  search: import.meta.env.VITE_SEARCH_URL || '/api/search',
+  playlist: import.meta.env.VITE_PLAYLIST_URL || '/api/playlist',
+  history: import.meta.env.VITE_HISTORY_URL || '/api/history',
+  subscription: import.meta.env.VITE_SUBSCRIPTION_URL || '/api/subscription',
 };
 
 // Función para requests PÚBLICOS (sin autenticación)

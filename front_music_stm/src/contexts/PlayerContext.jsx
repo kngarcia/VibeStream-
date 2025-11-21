@@ -260,7 +260,8 @@ export const PlayerProvider = ({ children }) => {
         throw new Error('No hay token de autenticación disponible');
       }
 
-      const streamUrl = `http://localhost:8001/stream?id=${track.id}`;
+      const streamingBaseUrl = import.meta.env.VITE_STREAMING_URL || '/api/streaming';
+      const streamUrl = `${streamingBaseUrl}/stream?id=${track.id}`;
       
       console.log('🎵 Iniciando reproducción con fetch:', {
         track: track.title,

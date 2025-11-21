@@ -68,7 +68,7 @@ const ArtistStudio = () => {
             <div className="flex items-center space-x-4">
               {artistData?.profile_pic ? (
                 <img
-                  src={`http://localhost:8003/files/${artistData.profile_pic}`}
+                  src={artistData.profile_pic}
                   alt={artistData.artist_name}
                   className="w-16 h-16 rounded-full object-cover"
                 />

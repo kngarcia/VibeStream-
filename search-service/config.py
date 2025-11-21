@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     db_url: str = Field(alias="db_url_py")
     jwt_secret: str = Field(alias="JWT_SECRET")
     jwt_algorithm: str = Field(alias="JWT_ALGORITHM", default="HS256")
-    port: int = Field(alias="PORT", default=8006)
+    port: int = Field(alias="SEARCH_PORT", default=8006)
 
     fronted_origins_raw: str = Field(alias="FRONTEND_ORIGINS", default="http://localhost:5173")
 

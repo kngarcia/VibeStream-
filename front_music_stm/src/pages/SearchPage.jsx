@@ -142,9 +142,7 @@ const SearchPage = () => {
       id: song.id,
       title: song.title,
       artist: song.artists?.map(artist => artist.name).join(', ') || 'Artista',
-      cover: song.album?.cover_url 
-        ? `http://localhost:8002/files${song.album.cover_url}`
-        : '/default-cover.png',
+      cover: song.album?.cover_url || '/default-cover.png',
       duration: song.duration,
       audio_url: song.audio_url,
     };

@@ -56,19 +56,7 @@ func InitS3() error {
 		return err
 	}
 
-	// Configurar opciones para el cliente S3
-	var s3Options []func(*s3.Options)
-
-	// Si hay un endpoint personalizado (LocalStack), usarlo
-	if cfg.AWSEndpointURL != "" {
-		s3Options = append(s3Options, func(o *s3.Options) {
-			o.BaseEndpoint = &cfg.AWSEndpointURL
-			o.UsePathStyle = true // LocalStack requiere path-style
-		})
-		println("🔧 Usando endpoint personalizado:", cfg.AWSEndpointURL)
-	}
-
-	S3 = s3.NewFromConfig(awsCfg, s3Options...)
+	S3 = s3.NewFromConfig(awsCfg)
 	Bucket = cfg.AWSS3Bucket
 
 	println("☁️  S3 client inicializado")
