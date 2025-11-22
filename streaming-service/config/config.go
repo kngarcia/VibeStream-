@@ -38,7 +38,8 @@ func GetConfig() *Config {
 			Port:           getEnv("STREAMING_PORT", "8001"),
 			JWTSecret:      getEnv("JWT_SECRET", "defaultsecret"),
 			DBURL:          getEnv("DB_URL", "postgres://user:pass@localhost:5432/dbname?sslmode=disable"),
-			RabbitURL:      getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost/"),
+			// Por defecto apuntar al broker 'rabbitmq' presente en docker-compose
+			RabbitURL:      getEnv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/"),
 			AllowedOrigins: allowedOrigins,
 
 			AWSAccessKeyID:     getEnv("AWS_ACCESS_KEY_ID", ""),

@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(alias="JWT_ALGORITHM", default="HS256")
     port: int = Field(alias="PLAYLIST_PORT", default=8004)
     frontend_origins_raw: str = Field(alias="FRONTEND_ORIGINS", default="http://localhost:3000,http://localhost:5173")
+    # URL base para acceder a archivos (covers/audio) desde otros servicios
+    files_base_url: str = Field(alias="FILES_BASE_URL", default="http://localhost:8002/files")
 
     class Config:
         env_file = ".env"
@@ -31,19 +33,8 @@ class Settings(BaseSettings):
                     return [str(x).strip() for x in parsed if x]
             except Exception:
                 pass
+        # Normalizar a lista separada por comas
         return [p.strip() for p in s.split(",") if p.strip()]
-                pass
-        
-        # ✅ ASEGURAR PROTOCOLO HTTP/HTTPS
-        origins = []
-        for origin in s.split(","):
-            origin = origin.strip()
-            if origin:
-                if not origin.startswith(('http://', 'https://')):
-                    origin = f"http://{origin}"
-                origins.append(origin)
-        
-        return origins
 
 settings = Settings()
 
@@ -51,5 +42,6 @@ print(f"🔧 Config loaded:"
       f"\n   JWT Secret: {settings.jwt_secret}"
       f"\n   JWT Algorithm: {settings.jwt_algorithm}"
       f"\n   Port: {settings.port}"
-      f"\n   Frontend Origins: {settings.frontend_origins}"
+    f"\n   Frontend Origins: {settings.frontend_origins}"
+    f"\n   Files Base URL: {settings.files_base_url}"
 )

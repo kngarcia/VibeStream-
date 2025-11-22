@@ -30,7 +30,8 @@ func GetConfig() *Config {
 			Port:           getEnv("HISTORY_PORT", "8005"),
 			JWTSecret:      getEnv("JWT_SECRET", "defaultsecret"),
 			DBURL:          getEnv("DB_URL", "postgres://user:pass@localhost:5432/dbname?sslmode=disable"),
-			RabbitURL:      getEnv("RABBITMQ_URL", "amqp://guest:guest@localhost/"),
+			// Por defecto en docker-compose el host del broker es `rabbitmq` y el puerto 5672
+			RabbitURL:      getEnv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/"),
 			AllowedOrigins: parseOrigins(getEnv("ALLOWED_ORIGINS", "*")),
 		}
 	})

@@ -6,6 +6,7 @@ from sqlalchemy import func as sql_func
 from database.models import Playlist, PlaylistSong
 from typing import Optional, Dict, Any, List
 from datetime import date
+from config import settings
 
 
 class PlaylistRepository:
@@ -80,9 +81,7 @@ class PlaylistRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_playlist_songs(
-            self, playlist_id: int, user_id: int
-        ) -> List[Dict[str, Any]]:
+    async def get_playlist_songs(self, playlist_id: int, user_id: int) -> List[Dict[str, Any]]:
         """
         Obtener todas las canciones de una playlist con formato específico:
         Incluye URLs completas para cover y audio
@@ -94,8 +93,8 @@ class PlaylistRepository:
         if not playlist:
             return []
 
-        # Base URL para los archivos (ajusta según tu configuración)
-        BASE_URL = "http://localhost:8002/files"
+        # Base URL para los archivos (configurable vía FILES_BASE_URL)
+        BASE_URL = getattr(settings, "files_base_url", "http://localhost:8002/files")
 
         # Consulta optimizada para obtener toda la información necesaria
         stmt = (
@@ -130,13 +129,13 @@ class PlaylistRepository:
 
             formatted_songs.append(
                 {
-                    "id": song_data.song_id,  # ✅ Usar 'id' directamente
-                    "title": song_data.song_title,  # ✅ Usar 'title' directamente
+                    "id": song_data.song_id,
+                    "title": song_data.song_title,
                     "artist_name": song_data.artist_name,
                     "duration": song_data.duration,
                     "album_title": song_data.album_title,
-                    "album_cover": cover_url,  # ✅ URL completa
-                    "audio_url": audio_url,  # ✅ URL completa
+                    "album_cover": cover_url,
+                    "audio_url": audio_url,
                     "artist_id": song_data.artist_id,
                     "added_at": song_data.added_at.isoformat() if song_data.added_at else None,
                 }
